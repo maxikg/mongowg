@@ -6,9 +6,9 @@ This Bukkit/Spigot plugin allows to use MongoDB as an storage backend for WorldG
    * Supported region types: Cuboid, Polygonal and Global
    * Supported features: region inheritances, priorities, owners, members and flags)
 
-## Compilation
+## Compile
 
-Binaries are possibly released on Github: https://github.com/maxikg/mongowg/releases
+Binaries are possibly released on GitHub: https://github.com/maxikg/mongowg/releases
 
 If not or you just want to build it by yourself there are just a few steps. You only need Java Development
 Kit 1.7+, Apache Maven 3 and Git.
