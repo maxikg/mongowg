@@ -1,0 +1,6 @@
+name: MongoWG
+description: MongoDB and WorldGuard in love. WG region storage in MongoDB.
+version: ${project.version}
+main: de.maxikg.mongowg.MongoWGPlugin
+author: maxikg
+depend: [ WorldGuard ]

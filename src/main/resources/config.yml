@@ -1,0 +1,8 @@
+# MongoDB connection details
+mongodb:
+  # Connection string uri for MongoDB
+  # See https://docs.mongodb.org/manual/reference/connection-string/
+  uri: 'mongodb://127.0.0.1'
+
+  # Database name
+  database: mongowg
