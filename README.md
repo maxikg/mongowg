@@ -1,10 +1,10 @@
-This Bukkit/Spigot plugin allows to use MongoDB as an storage backend for WorldGuard regions.
+This Bukkit/Spigot plugin allows to use MongoDB as a storage backend for WorldGuard regions.
 
 ## Features
 
  * Storing regions in MongoDB database
    * Supported region types: Cuboid, Polygonal and Global
-   * Supported features: region inheritances, priorities, owners, members and flags)
+   * Supported features: region inheritances, priorities, owners, members and flags
 
 ## Compile
 
@@ -26,7 +26,7 @@ The server needs WorldGuard 6.1 or a compatible version.
 The installation is easy:
 
  1. Drop the plugin jar into your plugins folder (normally `plugins/`)
- 2. Restarts server
+ 2. Restart server
  3. (Edit created configuration, if necessary)
 
 ## ToDo
