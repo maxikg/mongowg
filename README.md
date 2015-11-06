@@ -29,4 +29,6 @@ The installation is easy:
 
 ## ToDo
 
- * Automatic update of ingame regions on database changes (using MongoDB's oplog)
+ * Migrating to [Codec's](http://mongodb.github.io/mongo-java-driver/3.0/bson/codecs/)
+ * Automatic update of ingame regions on database changes (using
+   [MongoDB's oplog](https://docs.mongodb.org/manual/core/replica-set-oplog/))
