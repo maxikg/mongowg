@@ -8,7 +8,9 @@ This Bukkit/Spigot plugin allows to use MongoDB as an storage backend for WorldG
 
 ## Compilation
 
-There are currently no binaries for this plugin so you need to build it by yourself. You only need Java Development
+Binaries are possibly released on Github: https://github.com/maxikg/mongowg/releases
+
+If not or you just want to build it by yourself there are just a few steps. You only need Java Development
 Kit 1.7+, Apache Maven 3 and Git.
 
  1. Clone this repository: `git clone https://github.com/maxikg/mongowg.git`
