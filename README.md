@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/maxikg/mongowg.svg)](https://travis-ci.org/maxikg/mongowg)
+
 This Bukkit/Spigot plugin allows to use MongoDB as a storage backend for WorldGuard regions.
 
 ## Features
