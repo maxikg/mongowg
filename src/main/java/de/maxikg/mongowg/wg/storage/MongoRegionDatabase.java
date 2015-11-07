@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class MongoRegionDatabase implements RegionDatabase {
 
-    private static final String COLLECTION_NAME = "regions";
+    public static final String COLLECTION_NAME = "regions";
 
     private final MongoDatabase database;
     private final String world;

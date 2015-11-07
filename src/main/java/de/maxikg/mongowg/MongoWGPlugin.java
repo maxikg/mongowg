@@ -1,5 +1,6 @@
 package de.maxikg.mongowg;
 
+import com.mongodb.MongoTimeoutException;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
@@ -7,8 +8,14 @@ import com.sk89q.worldguard.bukkit.ConfigurationManager;
 import com.sk89q.worldguard.bukkit.RegionContainer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import de.maxikg.mongowg.utils.InjectionUtils;
+import de.maxikg.mongowg.utils.OperationResultCallback;
+import de.maxikg.mongowg.wg.storage.MongoRegionDatabase;
 import de.maxikg.mongowg.wg.storage.MongoRegionDriver;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 /**
  * Main plugin.
@@ -26,6 +33,8 @@ public class MongoWGPlugin extends JavaPlugin {
 
         client = MongoClients.create(getConfig().getString("mongodb.uri"));
         MongoDatabase database = client.getDatabase(getConfig().getString("mongodb.database"));
+        if (!testConnection(database))
+            return;
         MongoRegionDriver driver = new MongoRegionDriver(getServer(), database);
 
         WorldGuardPlugin wgPlugin = WorldGuardPlugin.inst();
@@ -46,5 +55,32 @@ public class MongoWGPlugin extends JavaPlugin {
             client.close();
             client = null;
         }
+    }
+
+    private boolean testConnection(MongoDatabase database) {
+        CountDownLatch waiter = new CountDownLatch(1);
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        boolean erroneous = false;
+        try {
+            database.getCollection(MongoRegionDatabase.COLLECTION_NAME).count(new OperationResultCallback<Long>(error, waiter));
+            waiter.await();
+            Throwable realError = error.get();
+            if (realError != null)
+                throw realError;
+        } catch (MongoTimeoutException ignore) {
+            getLogger().severe("Cannot connect to MongoDB server.");
+            erroneous = true;
+        } catch (Throwable throwable) {
+            getLogger().log(Level.SEVERE, "An error occurred while connecting to database.", throwable);
+            erroneous = true;
+        }
+
+        if (erroneous) {
+            getLogger().severe("An error was encountered. Disabling plugin and NOT injecting into WorldGuard.");
+            getServer().getPluginManager().disablePlugin(this);
+            return false;
+        }
+
+        return true;
     }
 }
