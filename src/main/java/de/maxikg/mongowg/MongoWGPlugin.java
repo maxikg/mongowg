@@ -1,16 +1,21 @@
 package de.maxikg.mongowg;
 
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.async.client.MongoClient;
+import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
+import com.mongodb.connection.ClusterSettings;
 import com.sk89q.worldguard.bukkit.ConfigurationManager;
 import com.sk89q.worldguard.bukkit.RegionContainer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import de.maxikg.mongowg.codec.ProtectedRegionCodec;
 import de.maxikg.mongowg.utils.InjectionUtils;
 import de.maxikg.mongowg.utils.OperationResultCallback;
 import de.maxikg.mongowg.wg.storage.MongoRegionDatabase;
 import de.maxikg.mongowg.wg.storage.MongoRegionDriver;
+import org.bson.codecs.configuration.CodecRegistries;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.CountDownLatch;
@@ -31,7 +36,11 @@ public class MongoWGPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
-        client = MongoClients.create(getConfig().getString("mongodb.uri"));
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .clusterSettings(ClusterSettings.builder().applyConnectionString(new ConnectionString(getConfig().getString("mongodb.uri"))).build())
+                .codecRegistry(CodecRegistries.fromCodecs(new ProtectedRegionCodec()))
+                .build();
+        client = MongoClients.create(settings);
         MongoDatabase database = client.getDatabase(getConfig().getString("mongodb.database"));
         if (!testConnection(database))
             return;
