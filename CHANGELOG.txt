@@ -1,0 +1,23 @@
+0.2.0 (2015-11-18)
+
+This release mainly migrates to MongoDB's codecs. It serializes and deserializes various data at a much lower level
+than the previous used mix of BsonDocument's and Document's.
+
+Removals:
+ * Removed DataUtils and its unit test during migration to MongoDB's codecs.
+
+Additions:
+ * Added BlockVector2DCodec (Codec for reading/writing com.sk89q.worldedit.BlockVector2D) and its unit test
+ * Added BlockVectorCodec (Codec for reading/writing com.sk89q.worldedit.BlockVector) and its unit test
+ * Added DefaultDomainCodec (Codec for reading/writing com.sk89q.worldguard.domains.DefaultDomain) and its unit test
+ * Added ProcessingProtectedRegionCodec (Codec for reading/writing de.maxikg.mongowg.model.ProcessingProtectedRegion)
+   and its unit test
+
+Changes:
+ * Changed manner of how connections are built
+
+------------------------------------------------------------------------------------------------------------------------
+
+0.1.0 (2015-11-06)
+
+Initial release

@@ -15,7 +15,7 @@ import com.sk89q.worldguard.protection.managers.storage.RegionDatabase;
 import com.sk89q.worldguard.protection.managers.storage.RegionDatabaseUtils;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-import de.maxikg.mongowg.utils.DataUtils;
+import de.maxikg.mongowg.model.ProcessingProtectedRegion;
 import de.maxikg.mongowg.utils.ConcurrentUtils;
 import de.maxikg.mongowg.utils.OperationResultCallback;
 import org.bson.Document;
@@ -64,14 +64,16 @@ public class MongoRegionDatabase implements RegionDatabase {
         final ConcurrentMap<String, ProtectedRegion> regions = new MapMaker().makeMap();
         final ConcurrentMap<ProtectedRegion, String> parents = new MapMaker().makeMap();
         getCollection().find(Filters.eq("world", world)).forEach(
-                new Block<Document>() {
+                new Block<ProcessingProtectedRegion>() {
                     @Override
-                    public void apply(Document document) {
-                        ProtectedRegion region = DataUtils.toProtectedRegion(document);
-                        regions.putIfAbsent(region.getId(), region);
-                        String parent = document.getString("parent");
+                    public void apply(ProcessingProtectedRegion region) {
+                        if (!world.equals(region.getWorld()))
+                            return;
+                        ProtectedRegion protectedRegion = region.getRegion();
+                        regions.putIfAbsent(protectedRegion.getId(), protectedRegion);
+                        String parent = region.getParent();
                         if (parent != null)
-                            parents.putIfAbsent(region, parent);
+                            parents.putIfAbsent(protectedRegion, parent);
                     }
                 },
                 OperationResultCallback.<Void>create(lastError, waiter)
@@ -89,13 +91,13 @@ public class MongoRegionDatabase implements RegionDatabase {
      */
     @Override
     public void saveAll(Set<ProtectedRegion> set) throws StorageException {
-        MongoCollection<Document> collection = getCollection();
+        MongoCollection<ProcessingProtectedRegion> collection = getCollection();
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
         final CountDownLatch waiter = new CountDownLatch(set.size());
         for (ProtectedRegion region : set) {
             collection.updateOne(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
-                    new Document("$set", DataUtils.toBson(region)),
+                    new Document("$set", new ProcessingProtectedRegion(region, world)),
                     new UpdateOptions().upsert(true),
                     OperationResultCallback.<UpdateResult>create(lastError, waiter)
             );
@@ -111,7 +113,7 @@ public class MongoRegionDatabase implements RegionDatabase {
      */
     @Override
     public void saveChanges(RegionDifference regionDifference) throws StorageException {
-        MongoCollection<Document> collection = getCollection();
+        MongoCollection<ProcessingProtectedRegion> collection = getCollection();
         Set<ProtectedRegion> changed = regionDifference.getChanged();
         Set<ProtectedRegion> removed = regionDifference.getRemoved();
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
@@ -119,7 +121,7 @@ public class MongoRegionDatabase implements RegionDatabase {
         for (ProtectedRegion region : regionDifference.getChanged()) {
             collection.updateOne(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
-                    new Document("$set", DataUtils.toBson(region)),
+                    new Document("$set", new ProcessingProtectedRegion(region, world)),
                     new UpdateOptions().upsert(true),
                     OperationResultCallback.<UpdateResult>create(lastError, waiter)
             );
@@ -138,7 +140,7 @@ public class MongoRegionDatabase implements RegionDatabase {
             throw new StorageException("An error occurred while saving or updating in MongoDB.", realLastError);
     }
 
-    private MongoCollection<Document> getCollection() {
-        return database.getCollection(COLLECTION_NAME);
+    private MongoCollection<ProcessingProtectedRegion> getCollection() {
+        return database.getCollection(COLLECTION_NAME, ProcessingProtectedRegion.class);
     }
 }
