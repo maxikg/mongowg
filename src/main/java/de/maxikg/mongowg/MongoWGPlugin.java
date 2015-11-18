@@ -10,12 +10,11 @@ import com.mongodb.connection.ClusterSettings;
 import com.sk89q.worldguard.bukkit.ConfigurationManager;
 import com.sk89q.worldguard.bukkit.RegionContainer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import de.maxikg.mongowg.codec.MongoWGCodecProvider;
+import de.maxikg.mongowg.codec.ProcessingProtectedRegionCodec;
 import de.maxikg.mongowg.utils.InjectionUtils;
 import de.maxikg.mongowg.utils.OperationResultCallback;
 import de.maxikg.mongowg.wg.storage.MongoRegionDatabase;
 import de.maxikg.mongowg.wg.storage.MongoRegionDriver;
-import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.DocumentCodecProvider;
 import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -41,7 +40,10 @@ public class MongoWGPlugin extends JavaPlugin {
 
         MongoClientSettings settings = MongoClientSettings.builder()
                 .clusterSettings(ClusterSettings.builder().applyConnectionString(new ConnectionString(getConfig().getString("mongodb.uri"))).build())
-                .codecRegistry(CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider(), new BsonValueCodecProvider(), new MongoWGCodecProvider()))
+                .codecRegistry(CodecRegistries.fromRegistries(
+                        CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider()),
+                        CodecRegistries.fromCodecs(new ProcessingProtectedRegionCodec(CodecRegistries.fromProviders(new DocumentCodecProvider(), new ValueCodecProvider())))
+                ))
                 .build();
         client = MongoClients.create(settings);
         MongoDatabase database = client.getDatabase(getConfig().getString("mongodb.database"));
