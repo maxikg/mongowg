@@ -8,10 +8,19 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 
+/**
+ * {@link Codec} for {@link BlockVector2D}.
+ */
 public class BlockVector2DCodec implements Codec<BlockVector2D> {
 
+    /**
+     * Static global instance.
+     */
     public static final BlockVector2DCodec INSTANCE = new BlockVector2DCodec();
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BlockVector2D decode(BsonReader reader, DecoderContext decoderContext) {
         int x = 0;
@@ -32,6 +41,9 @@ public class BlockVector2DCodec implements Codec<BlockVector2D> {
         return new BlockVector2D(x, z);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void encode(BsonWriter writer, BlockVector2D value, EncoderContext encoderContext) {
         writer.writeStartDocument();
@@ -42,6 +54,9 @@ public class BlockVector2DCodec implements Codec<BlockVector2D> {
         writer.writeEndDocument();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Class<BlockVector2D> getEncoderClass() {
         return BlockVector2D.class;

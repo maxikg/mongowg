@@ -1,5 +1,6 @@
 package de.maxikg.mongowg.codec;
 
+import com.sk89q.worldedit.BlockVector2D;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import org.bson.BsonReader;
 import org.bson.BsonType;
@@ -10,10 +11,19 @@ import org.bson.codecs.EncoderContext;
 
 import java.util.UUID;
 
+/**
+ * {@link Codec} for {@link DefaultDomain}.
+ */
 public class DefaultDomainCodec implements Codec<DefaultDomain> {
 
+    /**
+     * Static global instance.
+     */
     public static final DefaultDomainCodec INSTANCE = new DefaultDomainCodec();
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public DefaultDomain decode(BsonReader reader, DecoderContext decoderContext) {
         DefaultDomain domain = new DefaultDomain();
@@ -40,6 +50,9 @@ public class DefaultDomainCodec implements Codec<DefaultDomain> {
         return domain;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void encode(BsonWriter writer, DefaultDomain value, EncoderContext encoderContext) {
         writer.writeStartDocument();
@@ -56,6 +69,9 @@ public class DefaultDomainCodec implements Codec<DefaultDomain> {
         writer.writeEndDocument();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Class<DefaultDomain> getEncoderClass() {
         return DefaultDomain.class;

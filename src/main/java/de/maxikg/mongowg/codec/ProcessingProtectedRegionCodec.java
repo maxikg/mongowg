@@ -26,14 +26,28 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * {@link Codec} for {@link ProcessingProtectedRegion}.
+ */
 public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtectedRegion> {
 
+    /**
+     * Static global instance.
+     */
     private final CodecRegistry registry;
 
+    /**
+     * Constructor for {@code ProcessingProtectedRegionCodec}.
+     *
+     * @param registry The {@link CodecRegistry} which should be used
+     */
     public ProcessingProtectedRegionCodec(CodecRegistry registry) {
         this.registry = registry;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ProcessingProtectedRegion decode(BsonReader reader, DecoderContext decoderContext) {
         RegionType type = null;
@@ -117,6 +131,9 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         return new ProcessingProtectedRegion(region, parent, world);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void encode(BsonWriter writer, ProcessingProtectedRegion value, EncoderContext encoderContext) {
         ProtectedRegion region = value.getRegion();
@@ -159,6 +176,9 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         writer.writeEndDocument();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Class<ProcessingProtectedRegion> getEncoderClass() {
         return ProcessingProtectedRegion.class;

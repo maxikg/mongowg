@@ -8,10 +8,19 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 
+/**
+ * {@link Codec} for {@link BlockVector}.
+ */
 public class BlockVectorCodec implements Codec<BlockVector> {
 
+    /**
+     * Static global instance.
+     */
     public static final BlockVectorCodec INSTANCE = new BlockVectorCodec();
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BlockVector decode(BsonReader reader, DecoderContext decoderContext) {
         int x = 0;
@@ -35,6 +44,9 @@ public class BlockVectorCodec implements Codec<BlockVector> {
         return new BlockVector(x, y, z);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void encode(BsonWriter writer, BlockVector value, EncoderContext encoderContext) {
         writer.writeStartDocument();
@@ -47,6 +59,9 @@ public class BlockVectorCodec implements Codec<BlockVector> {
         writer.writeEndDocument();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Class<BlockVector> getEncoderClass() {
         return BlockVector.class;
