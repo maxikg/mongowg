@@ -1,5 +1,6 @@
 package de.maxikg.mongowg.model;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -34,12 +35,25 @@ public class ProcessingProtectedRegion {
         return world;
     }
 
-    public void setWorld(String world) {
-        this.world = Preconditions.checkNotNull(world);
-    }
-
     private static String extractParent(ProtectedRegion region) {
         ProtectedRegion parent = region.getParent();
         return parent != null ? parent.getId() : null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ProcessingProtectedRegion that = (ProcessingProtectedRegion) o;
+        return Objects.equal(getRegion(), that.getRegion()) &&
+                Objects.equal(getParent(), that.getParent()) &&
+                Objects.equal(getWorld(), that.getWorld());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getRegion(), getParent(), getWorld());
     }
 }
