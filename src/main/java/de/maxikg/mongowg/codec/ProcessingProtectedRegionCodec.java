@@ -58,7 +58,7 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
             } else if ("world".equals(name)) {
                 world = reader.readString();
             } else if ("parent".equals(name)) {
-                parent = reader.readString();
+                parent = readStringOrNull(reader);
             } else if ("priority".equals(name)) {
                 priority = reader.readInt32();
             } else if ("type".equals(name)) {
@@ -174,5 +174,13 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
     @SuppressWarnings("unchecked")
     private static <T> Object marshal(Flag<T> flag, Object value) {
         return flag.marshal((T) value);
+    }
+
+    private static String readStringOrNull(BsonReader reader) {
+        if (reader.getCurrentBsonType() == BsonType.NULL)
+            reader.readNull();
+        else
+            return reader.readString();
+        return null;
     }
 }
