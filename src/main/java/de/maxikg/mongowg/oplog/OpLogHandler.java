@@ -1,13 +1,13 @@
 package de.maxikg.mongowg.oplog;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 import org.bson.types.ObjectId;
 
 public interface OpLogHandler {
 
-    void onCreate(Document createdDocument);
+    void onCreate(BsonDocument createdDocument);
 
-    void onUpdate(Document updatedDocument);
+    void onUpdate(ObjectId updatedObject);
 
     void onDelete(ObjectId deletedObject);
 

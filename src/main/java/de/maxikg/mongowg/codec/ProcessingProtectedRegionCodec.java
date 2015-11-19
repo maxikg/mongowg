@@ -107,7 +107,6 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         }
         reader.readEndDocument();
 
-        Preconditions.checkNotNull(objectId, "_id must be set in document.");
         Preconditions.checkNotNull(id, "name must be set in document.");
         Preconditions.checkNotNull(type, "type must be set in document.");
         ProtectedRegion region;

@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoCollection;
+import org.bson.BsonDocument;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 
@@ -18,16 +19,16 @@ public class OpLogUtils {
     private OpLogUtils() {
     }
 
-    public static BsonTimestamp getLatestOplogTimestamp(MongoCollection<Document> collection) {
+    public static BsonTimestamp getLatestOplogTimestamp(MongoCollection<BsonDocument> collection) {
         final AtomicReference<BsonTimestamp> timestamp = new AtomicReference<>();
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final CountDownLatch waiter = new CountDownLatch(1);
-        collection.find().sort(new Document("$natural", -1)).limit(1).first(new SingleResultCallback<Document>() {
+        collection.find().sort(new Document("$natural", -1)).limit(1).first(new SingleResultCallback<BsonDocument>() {
             @Override
-            public void onResult(Document document, Throwable throwable) {
+            public void onResult(BsonDocument document, Throwable throwable) {
                 if (throwable != null)
                     error.set(throwable);
-                timestamp.set(document.get("ts", BsonTimestamp.class));
+                timestamp.set(document.getTimestamp("ts"));
                 waiter.countDown();
             }
         });
@@ -38,7 +39,7 @@ public class OpLogUtils {
         return timestamp.get();
     }
 
-    public static MongoCollection<Document> getCollection(MongoClient client) {
-        return client.getDatabase(OPLOG_DATABASE).getCollection(OPLOG_COLLECTION);
+    public static MongoCollection<BsonDocument> getCollection(MongoClient client) {
+        return client.getDatabase(OPLOG_DATABASE).getCollection(OPLOG_COLLECTION, BsonDocument.class);
     }
 }

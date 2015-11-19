@@ -1,7 +1,7 @@
 package de.maxikg.mongowg.oplog;
 
 import com.google.common.base.Preconditions;
-import org.bson.Document;
+import org.bson.BsonDocument;
 
 public class OpLogParser {
 
@@ -15,15 +15,15 @@ public class OpLogParser {
         this.handler = Preconditions.checkNotNull(handler, "handler must be not null.");
     }
 
-    public void emit(Document document) {
-        String action = document.getString("op");
+    public void emit(BsonDocument document) {
+        String action = document.getString("op").getValue();
         try {
             if (OP_CREATE.equals(action))
-                handler.onCreate(document.get("o", Document.class));
+                handler.onCreate(document.getDocument("o"));
             else if (OP_UPDATE.equals(action))
-                handler.onUpdate(document.get("o", Document.class));
+                handler.onUpdate(document.getDocument("o2").getObjectId("_id").getValue());
             else if (OP_DELETE.equals(action))
-                handler.onDelete(document.get("o", Document.class).getObjectId("_id"));
+                handler.onDelete(document.getDocument("o").getObjectId("_id").getValue());
         } catch (Throwable e) {
             handler.onException(e);
         }

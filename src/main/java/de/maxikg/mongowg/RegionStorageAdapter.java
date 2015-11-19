@@ -2,10 +2,12 @@ package de.maxikg.mongowg;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
 import com.mongodb.Block;
+import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -41,6 +43,25 @@ public class RegionStorageAdapter {
 
     public RegionPath resolvePath(ObjectId id) {
         return idToRegion.get(id);
+    }
+
+    public ProcessingProtectedRegion load(ObjectId id) {
+        final CountDownLatch waiter = new CountDownLatch(1);
+        final AtomicReference<ProcessingProtectedRegion> result = new AtomicReference<>();
+        final AtomicReference<Throwable> lastError = new AtomicReference<>();
+        getCollection().find(Filters.eq("_id", id)).first(new SingleResultCallback<ProcessingProtectedRegion>() {
+            @Override
+            public void onResult(ProcessingProtectedRegion region, Throwable throwable) {
+                result.set(region);
+                lastError.set(throwable);
+                waiter.countDown();
+            }
+        });
+        Throwable realLastError = lastError.get();
+        if (realLastError != null)
+            Throwables.propagate(realLastError);
+        ConcurrentUtils.safeAwait(waiter);
+        return result.get();
     }
 
     public Set<ProtectedRegion> loadAll(final String world) throws StorageException {

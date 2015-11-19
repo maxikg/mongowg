@@ -14,10 +14,14 @@ import de.maxikg.mongowg.codec.BlockVector2DCodec;
 import de.maxikg.mongowg.codec.BlockVectorCodec;
 import de.maxikg.mongowg.codec.DefaultDomainCodec;
 import de.maxikg.mongowg.codec.ProcessingProtectedRegionCodec;
+import de.maxikg.mongowg.model.ProcessingProtectedRegion;
+import de.maxikg.mongowg.oplog.OpLogParser;
+import de.maxikg.mongowg.oplog.OpLogRetriever;
 import de.maxikg.mongowg.utils.InjectionUtils;
+import de.maxikg.mongowg.utils.OpLogUtils;
 import de.maxikg.mongowg.utils.OperationResultCallback;
-import de.maxikg.mongowg.wg.storage.MongoRegionDatabase;
 import de.maxikg.mongowg.wg.storage.MongoRegionDriver;
+import org.bson.codecs.BsonValueCodecProvider;
 import org.bson.codecs.DocumentCodecProvider;
 import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecRegistries;
@@ -42,9 +46,10 @@ public class MongoWGPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
+        CodecRegistry codecRegistry = createCodecRegistry();
         MongoClientSettings settings = MongoClientSettings.builder()
                 .clusterSettings(ClusterSettings.builder().applyConnectionString(new ConnectionString(getConfig().getString("mongodb.uri"))).build())
-                .codecRegistry(createCodecRegistry())
+                .codecRegistry(codecRegistry)
                 .build();
         client = MongoClients.create(settings);
         MongoDatabase database = client.getDatabase(getConfig().getString("mongodb.database"));
@@ -54,6 +59,15 @@ public class MongoWGPlugin extends JavaPlugin {
         MongoRegionDriver driver = new MongoRegionDriver(getServer(), storageAdapter);
 
         WorldGuardPlugin wgPlugin = WorldGuardPlugin.inst();
+        if (getConfig().getBoolean("mongodb.use_oplog")) {
+            getLogger().info("OpLog usage enabled.");
+            getServer().getScheduler().runTaskAsynchronously(this, new OpLogRetriever(
+                    OpLogUtils.getCollection(client),
+                    new OpLogParser(new WorldGuardOpLogHandler(codecRegistry.get(ProcessingProtectedRegion.class), storageAdapter, wgPlugin)),
+                    getConfig().getString("mongodb.database") + "." + RegionStorageAdapter.COLLECTION_NAME
+            ));
+        }
+
         ConfigurationManager config = wgPlugin.getGlobalStateManager();
         RegionContainer container = wgPlugin.getRegionContainer();
         InjectionUtils.injectRegionDriver(container, driver);
@@ -102,7 +116,7 @@ public class MongoWGPlugin extends JavaPlugin {
 
     private static CodecRegistry createCodecRegistry() {
         CodecRegistry common = CodecRegistries.fromRegistries(
-                CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider()),
+                CodecRegistries.fromProviders(new ValueCodecProvider(), new DocumentCodecProvider(), new BsonValueCodecProvider()),
                 CodecRegistries.fromCodecs(new BlockVector2DCodec(), new BlockVectorCodec(), new DefaultDomainCodec())
         );
         return CodecRegistries.fromRegistries(
