@@ -1,5 +1,6 @@
 package de.maxikg.mongowg.oplog;
 
+import de.maxikg.mongowg.utils.ConcurrentUtils;
 import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -38,31 +39,14 @@ public class OpLogParserTest {
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final AtomicReference<Document> document = new AtomicReference<>();
 
-        new OpLogParser(new OpLogHandler() {
+        new OpLogParser(new TestOpLogHandler(error, waiter) {
             @Override
             public void onCreate(Document createdDocument) {
                 document.set(createdDocument);
                 waiter.countDown();
             }
-
-            @Override
-            public void onUpdate(Document updatedDocument) {
-                error.set(new UnsupportedOperationException("Doesn't expect update."));
-                waiter.countDown();
-            }
-
-            @Override
-            public void onDelete(ObjectId deletedObject) {
-                error.set(new UnsupportedOperationException("Doesn't expect delete."));
-                waiter.countDown();
-            }
-
-            @Override
-            public void onException(Throwable throwable) {
-                error.set(throwable);
-                waiter.countDown();
-            }
         }).emit(CREATE);
+        ConcurrentUtils.safeAwait(waiter);
 
         Throwable realError = error.get();
         if (realError != null)
@@ -79,31 +63,14 @@ public class OpLogParserTest {
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final AtomicReference<Document> document = new AtomicReference<>();
 
-        new OpLogParser(new OpLogHandler() {
-            @Override
-            public void onCreate(Document createdDocument) {
-                error.set(new UnsupportedOperationException("Doesn't expect insert."));
-                waiter.countDown();
-            }
-
+        new OpLogParser(new TestOpLogHandler(error, waiter) {
             @Override
             public void onUpdate(Document updatedDocument) {
                 document.set(updatedDocument);
                 waiter.countDown();
             }
-
-            @Override
-            public void onDelete(ObjectId deletedObject) {
-                error.set(new UnsupportedOperationException("Doesn't expect delete."));
-                waiter.countDown();
-            }
-
-            @Override
-            public void onException(Throwable throwable) {
-                error.set(throwable);
-                waiter.countDown();
-            }
         }).emit(UPDATE);
+        ConcurrentUtils.safeAwait(waiter);
 
         Throwable realError = error.get();
         if (realError != null)
@@ -120,36 +87,54 @@ public class OpLogParserTest {
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final AtomicReference<ObjectId> id = new AtomicReference<>();
 
-        new OpLogParser(new OpLogHandler() {
-            @Override
-            public void onCreate(Document createdDocument) {
-                error.set(new UnsupportedOperationException("Doesn't expect insert."));
-                waiter.countDown();
-            }
-
-            @Override
-            public void onUpdate(Document updatedDocument) {
-                error.set(new UnsupportedOperationException("Doesn't expect update."));
-                waiter.countDown();
-            }
-
+        new OpLogParser(new TestOpLogHandler(error, waiter) {
             @Override
             public void onDelete(ObjectId deletedObject) {
                 id.set(deletedObject);
                 waiter.countDown();
             }
-
-            @Override
-            public void onException(Throwable throwable) {
-                error.set(throwable);
-                waiter.countDown();
-            }
         }).emit(DELETE);
+        ConcurrentUtils.safeAwait(waiter);
 
         Throwable realError = error.get();
         if (realError != null)
             throw realError;
 
         Assert.assertEquals(ID, id.get().toHexString());
+    }
+
+    private static abstract class TestOpLogHandler implements OpLogHandler {
+
+        private final AtomicReference<Throwable> error;
+        private final CountDownLatch waiter;
+
+        public TestOpLogHandler(AtomicReference<Throwable> error, CountDownLatch waiter) {
+            this.error = error;
+            this.waiter = waiter;
+        }
+
+        @Override
+        public void onCreate(Document createdDocument) {
+            error.set(new UnsupportedOperationException("Doesn't expect insert."));
+            waiter.countDown();
+        }
+
+        @Override
+        public void onUpdate(Document updatedDocument) {
+            error.set(new UnsupportedOperationException("Doesn't expect update."));
+            waiter.countDown();
+        }
+
+        @Override
+        public void onDelete(ObjectId deletedObject) {
+            error.set(new UnsupportedOperationException("Doesn't expect removal."));
+            waiter.countDown();
+        }
+
+        @Override
+        public void onException(Throwable throwable) {
+            error.set(throwable);
+            waiter.countDown();
+        }
     }
 }
