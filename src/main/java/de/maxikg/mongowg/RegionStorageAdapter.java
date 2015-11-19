@@ -1,10 +1,10 @@
 package de.maxikg.mongowg;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MapMaker;
-import com.google.common.collect.Table;
+import com.google.common.collect.Maps;
 import com.mongodb.Block;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
@@ -22,6 +22,7 @@ import de.maxikg.mongowg.utils.OperationResultCallback;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -31,19 +32,15 @@ public class RegionStorageAdapter {
 
     public static final String COLLECTION_NAME = "regions";
 
-    private final Table<String, String, ObjectId> databaseIds = HashBasedTable.create();
+    private final Map<ObjectId, RegionPath> idToRegion = Maps.newConcurrentMap();
     private final MongoDatabase database;
 
     public RegionStorageAdapter(MongoDatabase database) {
         this.database = Preconditions.checkNotNull(database, "database must be not null.");
     }
 
-    public ObjectId resolveObjectId(String world, ProtectedRegion region) {
-        return resolveObjectId(world, region.getId());
-    }
-
-    public ObjectId resolveObjectId(String world, String id) {
-        return databaseIds.get(world, id);
+    public RegionPath resolvePath(ObjectId id) {
+        return idToRegion.get(id);
     }
 
     public Set<ProtectedRegion> loadAll(final String world) throws StorageException {
@@ -58,7 +55,7 @@ public class RegionStorageAdapter {
                         if (!world.equals(region.getWorld()))
                             return;
                         ProtectedRegion protectedRegion = region.getRegion();
-                        databaseIds.put(world, protectedRegion.getId(), region.getDatabaseId());
+                        idToRegion.put(region.getDatabaseId(), new RegionPath(world, protectedRegion.getId()));
                         regions.putIfAbsent(protectedRegion.getId(), protectedRegion);
                         String parent = region.getParent();
                         if (parent != null)
@@ -123,5 +120,40 @@ public class RegionStorageAdapter {
 
     private MongoCollection<ProcessingProtectedRegion> getCollection() {
         return database.getCollection(COLLECTION_NAME, ProcessingProtectedRegion.class);
+    }
+
+    public static class RegionPath {
+
+        private final String world;
+        private final String id;
+
+        private RegionPath(String world, String id) {
+            this.world = world;
+            this.id = id;
+        }
+
+        public String getWorld() {
+            return world;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            RegionPath that = (RegionPath) o;
+            return Objects.equal(world, that.world) &&
+                    Objects.equal(id, that.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(world, id);
+        }
     }
 }

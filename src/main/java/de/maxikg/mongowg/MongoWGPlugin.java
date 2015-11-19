@@ -50,7 +50,8 @@ public class MongoWGPlugin extends JavaPlugin {
         MongoDatabase database = client.getDatabase(getConfig().getString("mongodb.database"));
         if (!testConnection(database))
             return;
-        MongoRegionDriver driver = new MongoRegionDriver(getServer(), database);
+        RegionStorageAdapter storageAdapter = new RegionStorageAdapter(database);
+        MongoRegionDriver driver = new MongoRegionDriver(getServer(), storageAdapter);
 
         WorldGuardPlugin wgPlugin = WorldGuardPlugin.inst();
         ConfigurationManager config = wgPlugin.getGlobalStateManager();
@@ -77,7 +78,7 @@ public class MongoWGPlugin extends JavaPlugin {
         final AtomicReference<Throwable> error = new AtomicReference<>();
         boolean erroneous = false;
         try {
-            database.getCollection(MongoRegionDatabase.COLLECTION_NAME).count(new OperationResultCallback<Long>(error, waiter));
+            database.getCollection(RegionStorageAdapter.COLLECTION_NAME).count(new OperationResultCallback<Long>(error, waiter));
             waiter.await();
             Throwable realError = error.get();
             if (realError != null)
