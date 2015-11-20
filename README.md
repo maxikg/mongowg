@@ -9,6 +9,7 @@ This Bukkit/Spigot plugin allows to use MongoDB as a storage backend for WorldGu
  * Storing regions in MongoDB database
    * Supported region types: Cuboid, Polygonal and Global
    * Supported features: region inheritances, priorities, owners, members and flags
+ * Optionally updating regions on database changes (since 0.3 with oplog enabled)
 
 ## Compile
 

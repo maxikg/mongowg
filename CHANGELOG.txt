@@ -1,3 +1,24 @@
+0.3.0 (2015-11-20)
+
+This release implements the oplog feature. It allows to let the plugin listen to MongoDB's oplog and apply all changes
+ingame, which are made in database. See README.md for further information.
+
+This feature is highly experimental and may contains bugs. To improve and stabilize this feature I need feedback. It is
+also important to report error messages or any inconvenient behaviour on the GitHub issue tracker:
+https://github.com/maxikg/mongowg/issues
+
+Removals:
+-
+
+Additions:
+ * Supports listeners on region save or deletion
+ * OpLog parser and its bridge to WorldGuard
+
+Changes:
+ * Outsource storage into it's own class (RegionStorageAdapter)
+
+------------------------------------------------------------------------------------------------------------------------
+
 0.2.0 (2015-11-18)
 
 This release mainly migrates to MongoDB's codecs. It serializes and deserializes various data at a much lower level
