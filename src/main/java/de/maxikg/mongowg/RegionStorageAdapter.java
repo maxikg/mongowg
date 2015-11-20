@@ -13,7 +13,6 @@ import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
-import com.mongodb.client.result.DeleteResult;
 import com.sk89q.worldguard.protection.managers.RegionDifference;
 import com.sk89q.worldguard.protection.managers.storage.RegionDatabaseUtils;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
@@ -34,7 +33,6 @@ public class RegionStorageAdapter {
 
     public static final String COLLECTION_NAME = "regions";
 
-    // ToDo: Remove regions after database removal
     private final Map<ObjectId, RegionPath> idToRegion = Maps.newConcurrentMap();
     private final MongoDatabase database;
     private RegionStorageListener listener;
@@ -146,7 +144,7 @@ public class RegionStorageAdapter {
         for (ProtectedRegion region : regionDifference.getRemoved()) {
             if (listener != null)
                 listener.beforeDatabaseDelete(world, region);
-            collection.deleteOne(
+            collection.findOneAndDelete(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
                     OperationResultCallback.create(lastError, waiter, new DeleteCallback(world, region))
             );
@@ -172,7 +170,6 @@ public class RegionStorageAdapter {
 
         @Override
         public void onResult(ProcessingProtectedRegion result, Throwable throwable) {
-            System.out.println(result);
             idToRegion.put(result.getDatabaseId(), RegionPath.create(result.getWorld(), result.getRegion().getId()));
 
             if (listener != null)
@@ -180,7 +177,7 @@ public class RegionStorageAdapter {
         }
     }
 
-    private class DeleteCallback implements SingleResultCallback<DeleteResult> {
+    private class DeleteCallback implements SingleResultCallback<ProcessingProtectedRegion> {
 
         private final String world;
         private final ProtectedRegion region;
@@ -191,9 +188,11 @@ public class RegionStorageAdapter {
         }
 
         @Override
-        public void onResult(DeleteResult result, Throwable throwable) {
+        public void onResult(ProcessingProtectedRegion result, Throwable throwable) {
             if (listener != null)
-                listener.afterDatabaseDelete(world, region, result);
+                listener.afterDatabaseDelete(world, result);
+
+            idToRegion.remove(result.getDatabaseId());
         }
     }
 

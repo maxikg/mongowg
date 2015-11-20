@@ -2,7 +2,6 @@ package de.maxikg.mongowg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import com.mongodb.client.result.DeleteResult;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -51,14 +50,12 @@ public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListen
     }
 
     @Override
-    public void afterDatabaseDelete(String world, ProtectedRegion region, DeleteResult result) {
-        if (result.getDeletedCount() < 1)
-            ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, region.getId()));
+    public void afterDatabaseDelete(String world, ProcessingProtectedRegion result) {
+        ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, result.getRegion().getId()));
     }
 
     @Override
     public void onCreate(BsonDocument createdDocument) {
-        //RegionStorageAdapter.RegionPath path = storageAdapter.resolvePath(createdDocument.getObjectId("_id").getValue());
         RegionStorageAdapter.RegionPath path = RegionStorageAdapter.RegionPath.create(createdDocument.getString("world").getValue() , createdDocument.getString("name").getValue());
         if (checkIsIgnored(path))
             return;
