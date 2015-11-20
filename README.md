@@ -1,4 +1,4 @@
-![MongoWG](https://raw.githubusercontent.com/maxikg/mongowg/docs/logo.png "MongoWG")
+![MongoWG](https://raw.githubusercontent.com/maxikg/mongowg/master/docs/logo.png "MongoWG")
 
 [![Build Status](https://travis-ci.org/maxikg/mongowg.svg)](https://travis-ci.org/maxikg/mongowg)
 
