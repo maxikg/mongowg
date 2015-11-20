@@ -1,6 +1,8 @@
 package de.maxikg.mongowg;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import com.mongodb.client.result.DeleteResult;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -12,15 +14,17 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.types.ObjectId;
 import org.bukkit.World;
-import org.bukkit.event.Listener;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WorldGuardOpLogHandler implements OpLogHandler, Listener {
+public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListener {
 
     private static final Logger LOGGER = Logger.getLogger(WorldGuardOpLogHandler.class.getName());
 
+    private final Set<RegionStorageAdapter.RegionPath> ignoreChanges = Collections.synchronizedSet(Sets.<RegionStorageAdapter.RegionPath>newHashSet());
     private final Codec<ProcessingProtectedRegion> processingProtectedRegionCodec;
     private final RegionStorageAdapter storageAdapter;
     private final WorldGuardPlugin worldGuard;
@@ -32,8 +36,32 @@ public class WorldGuardOpLogHandler implements OpLogHandler, Listener {
     }
 
     @Override
+    public void beforeDatabaseUpdate(String world, ProtectedRegion region) {
+        ignoreChanges.add(RegionStorageAdapter.RegionPath.create(world, region.getId()));
+    }
+
+    @Override
+    public void afterDatabaseUpdate(String world, ProcessingProtectedRegion result) {
+        ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, result.getRegion().getId()));
+    }
+
+    @Override
+    public void beforeDatabaseDelete(String world, ProtectedRegion region) {
+        ignoreChanges.add(RegionStorageAdapter.RegionPath.create(world, region.getId()));
+    }
+
+    @Override
+    public void afterDatabaseDelete(String world, ProtectedRegion region, DeleteResult result) {
+        if (result.getDeletedCount() < 1)
+            ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, region.getId()));
+    }
+
+    @Override
     public void onCreate(BsonDocument createdDocument) {
-        RegionStorageAdapter.RegionPath path = storageAdapter.resolvePath(createdDocument.getObjectId("_id").getValue());
+        //RegionStorageAdapter.RegionPath path = storageAdapter.resolvePath(createdDocument.getObjectId("_id").getValue());
+        RegionStorageAdapter.RegionPath path = RegionStorageAdapter.RegionPath.create(createdDocument.getString("world").getValue() , createdDocument.getString("name").getValue());
+        if (checkIsIgnored(path))
+            return;
         RegionManager regionManager = getRegionManager(path);
         if (regionManager != null)
             regionManager.addRegion(read(createdDocument).getRegion());
@@ -42,9 +70,11 @@ public class WorldGuardOpLogHandler implements OpLogHandler, Listener {
     @Override
     public void onUpdate(ObjectId updatedObject) {
         ProcessingProtectedRegion region = storageAdapter.load(updatedObject);
+        ProtectedRegion protectedRegion = region.getRegion();
+        if (checkIsIgnored(RegionStorageAdapter.RegionPath.create(region.getWorld(), protectedRegion.getId())))
+            return;
         RegionManager regionManager = getRegionManager(region.getWorld());
         if (regionManager != null) {
-            ProtectedRegion protectedRegion = region.getRegion();
             regionManager.removeRegion(protectedRegion.getId());
             regionManager.addRegion(protectedRegion);
             String parent = region.getParent();
@@ -84,5 +114,12 @@ public class WorldGuardOpLogHandler implements OpLogHandler, Listener {
         if (world != null)
             return worldGuard.getRegionManager(world);
         return null;
+    }
+
+    private boolean checkIsIgnored(RegionStorageAdapter.RegionPath path) {
+        boolean contains = ignoreChanges.contains(path);
+        if (contains)
+            ignoreChanges.remove(path);
+        return contains;
     }
 }

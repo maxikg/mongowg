@@ -61,11 +61,13 @@ public class MongoWGPlugin extends JavaPlugin {
         WorldGuardPlugin wgPlugin = WorldGuardPlugin.inst();
         if (getConfig().getBoolean("mongodb.use_oplog")) {
             getLogger().info("OpLog usage enabled.");
+            WorldGuardOpLogHandler opLogHandler = new WorldGuardOpLogHandler(codecRegistry.get(ProcessingProtectedRegion.class), storageAdapter, wgPlugin);
             getServer().getScheduler().runTaskAsynchronously(this, new OpLogRetriever(
                     OpLogUtils.getCollection(client),
-                    new OpLogParser(new WorldGuardOpLogHandler(codecRegistry.get(ProcessingProtectedRegion.class), storageAdapter, wgPlugin)),
+                    new OpLogParser(opLogHandler),
                     getConfig().getString("mongodb.database") + "." + RegionStorageAdapter.COLLECTION_NAME
             ));
+            storageAdapter.setListener(opLogHandler);
         }
 
         ConfigurationManager config = wgPlugin.getGlobalStateManager();

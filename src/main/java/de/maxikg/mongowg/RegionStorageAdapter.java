@@ -11,9 +11,9 @@ import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoCollection;
 import com.mongodb.async.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.result.DeleteResult;
-import com.mongodb.client.result.UpdateResult;
 import com.sk89q.worldguard.protection.managers.RegionDifference;
 import com.sk89q.worldguard.protection.managers.storage.RegionDatabaseUtils;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
@@ -34,11 +34,21 @@ public class RegionStorageAdapter {
 
     public static final String COLLECTION_NAME = "regions";
 
+    // ToDo: Remove regions after database removal
     private final Map<ObjectId, RegionPath> idToRegion = Maps.newConcurrentMap();
     private final MongoDatabase database;
+    private RegionStorageListener listener;
 
     public RegionStorageAdapter(MongoDatabase database) {
         this.database = Preconditions.checkNotNull(database, "database must be not null.");
+    }
+
+    public RegionStorageListener getListener() {
+        return listener;
+    }
+
+    public void setListener(RegionStorageListener listener) {
+        this.listener = listener;
     }
 
     public RegionPath resolvePath(ObjectId id) {
@@ -55,6 +65,8 @@ public class RegionStorageAdapter {
                 result.set(region);
                 lastError.set(throwable);
                 waiter.countDown();
+                if (region != null)
+                    idToRegion.put(region.getDatabaseId(), new RegionPath(region.getWorld(), region.getRegion().getId()));
             }
         });
         Throwable realLastError = lastError.get();
@@ -76,7 +88,8 @@ public class RegionStorageAdapter {
                         if (!world.equals(region.getWorld()))
                             return;
                         ProtectedRegion protectedRegion = region.getRegion();
-                        idToRegion.put(region.getDatabaseId(), new RegionPath(world, protectedRegion.getId()));
+                        if (region != null)
+                            idToRegion.put(region.getDatabaseId(), new RegionPath(world, protectedRegion.getId()));
                         regions.putIfAbsent(protectedRegion.getId(), protectedRegion);
                         String parent = region.getParent();
                         if (parent != null)
@@ -97,12 +110,14 @@ public class RegionStorageAdapter {
         MongoCollection<ProcessingProtectedRegion> collection = getCollection();
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
         final CountDownLatch waiter = new CountDownLatch(set.size());
-        for (ProtectedRegion region : set) {
-            collection.updateOne(
+        for (final ProtectedRegion region : set) {
+            if (listener != null)
+                listener.beforeDatabaseUpdate(world, region);
+            collection.findOneAndUpdate(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
                     new Document("$set", new ProcessingProtectedRegion(region, world)),
-                    new UpdateOptions().upsert(true),
-                    OperationResultCallback.<UpdateResult>create(lastError, waiter)
+                    new FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER),
+                    OperationResultCallback.create(lastError, waiter, new UpdateCallback(world))
             );
         }
         ConcurrentUtils.safeAwait(waiter);
@@ -118,18 +133,22 @@ public class RegionStorageAdapter {
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
         final CountDownLatch waiter = new CountDownLatch(changed.size() + removed.size());
         for (ProtectedRegion region : regionDifference.getChanged()) {
-            collection.updateOne(
+            if (listener != null)
+                listener.beforeDatabaseUpdate(world, region);
+            collection.findOneAndUpdate(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
                     new Document("$set", new ProcessingProtectedRegion(region, world)),
-                    new UpdateOptions().upsert(true),
-                    OperationResultCallback.<UpdateResult>create(lastError, waiter)
+                    new FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER),
+                    OperationResultCallback.create(lastError, waiter, new UpdateCallback(world))
             );
         }
 
         for (ProtectedRegion region : regionDifference.getRemoved()) {
+            if (listener != null)
+                listener.beforeDatabaseDelete(world, region);
             collection.deleteOne(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
-                    OperationResultCallback.<DeleteResult>create(lastError, waiter)
+                    OperationResultCallback.create(lastError, waiter, new DeleteCallback(world, region))
             );
         }
 
@@ -141,6 +160,41 @@ public class RegionStorageAdapter {
 
     private MongoCollection<ProcessingProtectedRegion> getCollection() {
         return database.getCollection(COLLECTION_NAME, ProcessingProtectedRegion.class);
+    }
+
+    private class UpdateCallback implements SingleResultCallback<ProcessingProtectedRegion> {
+
+        private final String world;
+
+        public UpdateCallback(String world) {
+            this.world = Preconditions.checkNotNull(world, "world must be not null.");
+        }
+
+        @Override
+        public void onResult(ProcessingProtectedRegion result, Throwable throwable) {
+            System.out.println(result);
+            idToRegion.put(result.getDatabaseId(), RegionPath.create(result.getWorld(), result.getRegion().getId()));
+
+            if (listener != null)
+                listener.afterDatabaseUpdate(world, result);
+        }
+    }
+
+    private class DeleteCallback implements SingleResultCallback<DeleteResult> {
+
+        private final String world;
+        private final ProtectedRegion region;
+
+        public DeleteCallback(String world, ProtectedRegion region) {
+            this.world = Preconditions.checkNotNull(world, "world must be not null.");
+            this.region = Preconditions.checkNotNull(region, "region must be not null.");
+        }
+
+        @Override
+        public void onResult(DeleteResult result, Throwable throwable) {
+            if (listener != null)
+                listener.afterDatabaseDelete(world, region, result);
+        }
     }
 
     public static class RegionPath {
@@ -175,6 +229,10 @@ public class RegionStorageAdapter {
         @Override
         public int hashCode() {
             return Objects.hashCode(world, id);
+        }
+
+        public static RegionPath create(String world, String id) {
+            return new RegionPath(world, id);
         }
     }
 }
