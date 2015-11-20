@@ -8,6 +8,7 @@ import com.mongodb.async.client.MongoDatabase;
 import com.sk89q.worldguard.protection.managers.storage.RegionDatabase;
 import com.sk89q.worldguard.protection.managers.storage.RegionDriver;
 import com.sk89q.worldguard.protection.managers.storage.StorageException;
+import de.maxikg.mongowg.RegionStorageAdapter;
 import org.bukkit.Server;
 import org.bukkit.World;
 
@@ -28,17 +29,17 @@ public class MongoRegionDriver implements RegionDriver {
     };
 
     private final Server server;
-    private final MongoDatabase database;
+    private final RegionStorageAdapter storageAdapter;
 
     /**
      * Constructor.
      *
      * @param server The {@link Server} on which this {@code RegionDriver} acts
-     * @param database The {@link MongoDatabase} which should be used
+     * @param storageAdapter The {@link RegionStorageAdapter} which should be used
      */
-    public MongoRegionDriver(Server server, MongoDatabase database) {
+    public MongoRegionDriver(Server server, RegionStorageAdapter storageAdapter) {
         this.server = Preconditions.checkNotNull(server, "server must be not null.");
-        this.database = Preconditions.checkNotNull(database, "database must be not null.");
+        this.storageAdapter = Preconditions.checkNotNull(storageAdapter, "storageAdapter must be not null.");
     }
 
     /**
@@ -46,7 +47,7 @@ public class MongoRegionDriver implements RegionDriver {
      */
     @Override
     public RegionDatabase get(String name) {
-        return new MongoRegionDatabase(database, name);
+        return new MongoRegionDatabase(storageAdapter, name);
     }
 
     /**

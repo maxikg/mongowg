@@ -21,6 +21,7 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.types.ObjectId;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
      */
     @Override
     public ProcessingProtectedRegion decode(BsonReader reader, DecoderContext decoderContext) {
+        ObjectId objectId = null;
         RegionType type = null;
         String id = null;
         String world = null;
@@ -67,7 +69,9 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String name = reader.readName();
-            if ("name".equals(name)) {
+            if ("_id".equals(name)) {
+                objectId = reader.readObjectId();
+            } else if ("name".equals(name)) {
                 id = reader.readString();
             } else if ("world".equals(name)) {
                 world = reader.readString();
@@ -103,7 +107,7 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         }
         reader.readEndDocument();
 
-        Preconditions.checkNotNull(id, "id must be set in document.");
+        Preconditions.checkNotNull(id, "name must be set in document.");
         Preconditions.checkNotNull(type, "type must be set in document.");
         ProtectedRegion region;
         switch (type) {
@@ -128,7 +132,7 @@ public class ProcessingProtectedRegionCodec implements Codec<ProcessingProtected
         region.setMembers(members);
         RegionDatabaseUtils.trySetFlagMap(region, flags);
 
-        return new ProcessingProtectedRegion(region, parent, world);
+        return new ProcessingProtectedRegion(region, parent, objectId, world);
     }
 
     /**

@@ -6,3 +6,7 @@ mongodb:
 
   # Database name
   database: mongowg
+
+  # Using oplog to apply database changes live
+  # Make sure that MongoDB is started with replication option --master. Otherwise the oplog won't work.
+  use_oplog: false
