@@ -37,8 +37,3 @@ The installation is easy:
 
 In order to use the oplog feature you must start your MongoDB server with the `--master` option. After you have done
 this you need to enable the oplog support by changing `mongodb.use_oplog` to true in MongoWG's configuration file.
-
-## ToDo
-
- * Automatic update of ingame regions on database changes (using
-   [MongoDB's oplog](https://docs.mongodb.org/manual/core/replica-set-oplog/))
