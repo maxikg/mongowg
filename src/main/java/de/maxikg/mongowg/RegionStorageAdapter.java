@@ -146,7 +146,7 @@ public class RegionStorageAdapter {
                 listener.beforeDatabaseDelete(world, region);
             collection.findOneAndDelete(
                     Filters.and(Filters.eq("name", region.getId()), Filters.eq("world", world)),
-                    OperationResultCallback.create(lastError, waiter, new DeleteCallback(world, region))
+                    OperationResultCallback.create(lastError, waiter, new DeleteCallback(world))
             );
         }
 
@@ -180,11 +180,9 @@ public class RegionStorageAdapter {
     private class DeleteCallback implements SingleResultCallback<ProcessingProtectedRegion> {
 
         private final String world;
-        private final ProtectedRegion region;
 
-        public DeleteCallback(String world, ProtectedRegion region) {
+        public DeleteCallback(String world) {
             this.world = Preconditions.checkNotNull(world, "world must be not null.");
-            this.region = Preconditions.checkNotNull(region, "region must be not null.");
         }
 
         @Override
