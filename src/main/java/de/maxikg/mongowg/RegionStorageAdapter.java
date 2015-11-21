@@ -189,7 +189,7 @@ public class RegionStorageAdapter {
 
         @Override
         public void onResult(ProcessingProtectedRegion result, Throwable throwable) {
-            if (listener != null)
+            if (listener != null && result != null)
                 listener.afterDatabaseDelete(world, result);
 
             idToRegion.remove(result.getDatabaseId());
