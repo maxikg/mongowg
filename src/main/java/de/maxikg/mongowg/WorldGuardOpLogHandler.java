@@ -19,6 +19,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Acts as a bridge between {@link RegionStorageAdapter} and {@link de.maxikg.mongowg.oplog.OpLogParser}.
+ */
 public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListener {
 
     private static final Logger LOGGER = Logger.getLogger(WorldGuardOpLogHandler.class.getName());
@@ -28,32 +31,54 @@ public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListen
     private final RegionStorageAdapter storageAdapter;
     private final WorldGuardPlugin worldGuard;
 
+    /**
+     * Constructor.
+     *
+     * @param processingProtectedRegionCodec The {@link Codec} which should be used to decode {@link ProcessingProtectedRegion}s
+     * @param storageAdapter The {@link RegionStorageAdapter} to which the oplog changes should be applied
+     * @param worldGuard The {@link WorldGuardPlugin} instance
+     */
     public WorldGuardOpLogHandler(Codec<ProcessingProtectedRegion> processingProtectedRegionCodec, RegionStorageAdapter storageAdapter, WorldGuardPlugin worldGuard) {
         this.processingProtectedRegionCodec = Preconditions.checkNotNull(processingProtectedRegionCodec, "processingProtectedRegionCodec must be not null.");
         this.storageAdapter = Preconditions.checkNotNull(storageAdapter, "storageAdapter must be not null.");
         this.worldGuard = Preconditions.checkNotNull(worldGuard, "worldGuard must be not null.");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void beforeDatabaseUpdate(String world, ProtectedRegion region) {
         ignoreChanges.add(RegionStorageAdapter.RegionPath.create(world, region.getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void afterDatabaseUpdate(String world, ProcessingProtectedRegion result) {
         ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, result.getRegion().getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void beforeDatabaseDelete(String world, ProtectedRegion region) {
         ignoreChanges.add(RegionStorageAdapter.RegionPath.create(world, region.getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void afterDatabaseDelete(String world, ProcessingProtectedRegion result) {
         ignoreChanges.remove(RegionStorageAdapter.RegionPath.create(world, result.getRegion().getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onCreate(BsonDocument createdDocument) {
         RegionStorageAdapter.RegionPath path = RegionStorageAdapter.RegionPath.create(createdDocument.getString("world").getValue() , createdDocument.getString("name").getValue());
@@ -64,6 +89,9 @@ public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListen
             regionManager.addRegion(read(createdDocument).getRegion());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onUpdate(ObjectId updatedObject) {
         ProcessingProtectedRegion region = storageAdapter.load(updatedObject);
@@ -85,6 +113,9 @@ public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListen
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onDelete(ObjectId deletedObject) {
         RegionStorageAdapter.RegionPath path = storageAdapter.resolvePath(deletedObject);
@@ -93,6 +124,9 @@ public class WorldGuardOpLogHandler implements OpLogHandler, RegionStorageListen
             regionManager.removeRegion(path.getId());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onException(Throwable throwable) {
         LOGGER.log(Level.SEVERE, "An error occurred while reading oplog.", throwable);

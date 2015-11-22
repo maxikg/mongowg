@@ -29,30 +29,63 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * The adapter to save or retrieve regions from database.
+ */
 public class RegionStorageAdapter {
 
+    /**
+     * The name of the collections which contains regions.
+     */
     public static final String COLLECTION_NAME = "regions";
 
     private final Map<ObjectId, RegionPath> idToRegion = Maps.newConcurrentMap();
     private final MongoDatabase database;
     private RegionStorageListener listener;
 
+    /**
+     * Constructor.
+     *
+     * @param database The {@link MongoDatabase} to use
+     */
     public RegionStorageAdapter(MongoDatabase database) {
         this.database = Preconditions.checkNotNull(database, "database must be not null.");
     }
 
+    /**
+     * Returns the current configured {@link RegionStorageListener}.
+     *
+     * @return The {@link RegionStorageListener} or {@code null} if nothing is set
+     */
     public RegionStorageListener getListener() {
         return listener;
     }
 
+    /**
+     * Set's a new {@link RegionStorageListener}.
+     *
+     * @param listener The new {@link RegionStorageListener} or {@code null} if no one is wanted
+     */
     public void setListener(RegionStorageListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * Resolves a given {@link ObjectId} to it's {@link RegionPath}.
+     *
+     * @param id The {@link ObjectId}
+     * @return The {@link RegionPath} or {@code null} if the {@code id} is not known
+     */
     public RegionPath resolvePath(ObjectId id) {
         return idToRegion.get(id);
     }
 
+    /**
+     * Load's the region with the given {@link ObjectId} from database.
+     *
+     * @param id The {@link ObjectId}
+     * @return The {@link ProcessingProtectedRegion}
+     */
     public ProcessingProtectedRegion load(ObjectId id) {
         final CountDownLatch waiter = new CountDownLatch(1);
         final AtomicReference<ProcessingProtectedRegion> result = new AtomicReference<>();
@@ -74,6 +107,13 @@ public class RegionStorageAdapter {
         return result.get();
     }
 
+    /**
+     * Load all regions for a specified world.
+     *
+     * @param world The name of the world
+     * @return A immutable {@link Set} of all {@link ProtectedRegion}s
+     * @throws StorageException Thrown if something goes wrong during database query
+     */
     public Set<ProtectedRegion> loadAll(final String world) throws StorageException {
         final CountDownLatch waiter = new CountDownLatch(1);
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
@@ -104,6 +144,13 @@ public class RegionStorageAdapter {
         return ImmutableSet.copyOf(regions.values());
     }
 
+    /**
+     * Saves a set of {@link ProtectedRegion} for the specified world to database.
+     *
+     * @param world The name of the world
+     * @param set The {@link Set} of regions
+     * @throws StorageException Thrown if something goes wrong during database query
+     */
     public void saveAll(final String world, Set<ProtectedRegion> set) throws StorageException {
         MongoCollection<ProcessingProtectedRegion> collection = getCollection();
         final AtomicReference<Throwable> lastError = new AtomicReference<>();
@@ -124,6 +171,13 @@ public class RegionStorageAdapter {
             throw new StorageException("An error occurred while saving or updating in MongoDB.", realLastError);
     }
 
+    /**
+     * Saves the given {@link RegionDifference} for the specified world to database.
+     *
+     * @param world The name oft the world
+     * @param regionDifference The {@link RegionDifference} which should be saved
+     * @throws StorageException Thrown if something goes wrong during database query
+     */
     public void saveChanges(final String world, RegionDifference regionDifference) throws StorageException {
         MongoCollection<ProcessingProtectedRegion> collection = getCollection();
         Set<ProtectedRegion> changed = regionDifference.getChanged();
@@ -194,6 +248,9 @@ public class RegionStorageAdapter {
         }
     }
 
+    /**
+     * A simple class which holds an world name and a region id.
+     */
     public static class RegionPath {
 
         private final String world;
@@ -204,14 +261,27 @@ public class RegionStorageAdapter {
             this.id = id;
         }
 
+        /**
+         * Returns the world name.
+         *
+         * @return The world name
+         */
         public String getWorld() {
             return world;
         }
 
+        /**
+         * Returns the region id.
+         *
+         * @return The region id
+         */
         public String getId() {
             return id;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean equals(Object o) {
             if (this == o)
@@ -223,11 +293,20 @@ public class RegionStorageAdapter {
                     Objects.equal(id, that.id);
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public int hashCode() {
             return Objects.hashCode(world, id);
         }
 
+        /**
+         * Create a new instance of {@link RegionPath}.
+         *
+         * @param world The name of the world
+         * @param id The name of the region
+         */
         public static RegionPath create(String world, String id) {
             return new RegionPath(world, id);
         }

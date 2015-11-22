@@ -11,6 +11,9 @@ import org.bson.Document;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Some utilities to deal with MongoDB's oplog.
+ */
 public class OpLogUtils {
 
     public static final String OPLOG_COLLECTION = "oplog.$main";
@@ -19,6 +22,12 @@ public class OpLogUtils {
     private OpLogUtils() {
     }
 
+    /**
+     * Returns the timestamp of the latest oplog entry.
+     *
+     * @param collection The oplog {@link MongoCollection}
+     * @return The latest timestamp or {@code null} if no entry is available
+     */
     public static BsonTimestamp getLatestOplogTimestamp(MongoCollection<BsonDocument> collection) {
         final AtomicReference<BsonTimestamp> timestamp = new AtomicReference<>();
         final AtomicReference<Throwable> error = new AtomicReference<>();
@@ -39,6 +48,12 @@ public class OpLogUtils {
         return timestamp.get();
     }
 
+    /**
+     * Returns the {@code MongoCollection} which contains the oplog.
+     *
+     * @param client The {@link MongoClient}
+     * @return The {@code MongoCollection} which contains the oplog
+     */
     public static MongoCollection<BsonDocument> getCollection(MongoClient client) {
         return client.getDatabase(OPLOG_DATABASE).getCollection(OPLOG_COLLECTION, BsonDocument.class);
     }

@@ -14,18 +14,31 @@ import org.bson.BsonTimestamp;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * {@link Runnable} which can be used to obtain oplog information.
+ */
 public class OpLogRetriever implements Runnable {
 
     private final MongoCollection<BsonDocument> oplog;
     private final OpLogParser parser;
     private final String namespace;
 
+    /**
+     * Constructor.
+     *
+     * @param oplog The oplog collection
+     * @param parser An instance of {@link OpLogParser}
+     * @param namespace The namespace for which should be listened
+     */
     public OpLogRetriever(MongoCollection<BsonDocument> oplog, OpLogParser parser, String namespace) {
         this.oplog = Preconditions.checkNotNull(oplog, "oplog must be not null.");
         this.parser = Preconditions.checkNotNull(parser, "parser must be not null.");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace must be not null.");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run() {
         final AtomicReference<BsonTimestamp> last = new AtomicReference<>(OpLogUtils.getLatestOplogTimestamp(oplog));
