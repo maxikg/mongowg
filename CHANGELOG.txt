@@ -1,3 +1,20 @@
+0.3.1 (upcoming)
+
+Currently work in progress.
+
+Removals:
+-
+
+Additions:
+ * Warning message if oplog isn't ready but enabled in configuration
+
+Changes:
+ * RegionPath now uses Guava Interners (comparable behaviour to `String.intern()`)
+ * Fixed NPE which is thrown when oplog isn't available
+ * Fixed NPE which is thrown while deleting a region which isn't known to database
+
+------------------------------------------------------------------------------------------------------------------------
+
 0.3.0 (2015-11-20)
 
 This release implements the oplog feature. It allows to let the plugin listen to MongoDB's oplog and apply all changes
