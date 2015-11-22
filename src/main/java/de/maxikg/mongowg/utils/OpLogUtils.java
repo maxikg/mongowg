@@ -37,7 +37,8 @@ public class OpLogUtils {
             public void onResult(BsonDocument document, Throwable throwable) {
                 if (throwable != null)
                     error.set(throwable);
-                timestamp.set(document.getTimestamp("ts"));
+                if (document != null)
+                    timestamp.set(document.getTimestamp("ts"));
                 waiter.countDown();
             }
         });
