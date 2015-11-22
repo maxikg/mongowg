@@ -4,6 +4,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
 import com.mongodb.Block;
@@ -38,6 +40,8 @@ public class RegionStorageAdapter {
      * The name of the collections which contains regions.
      */
     public static final String COLLECTION_NAME = "regions";
+
+    private static final Interner<RegionPath> REGION_PATH_CACHE = Interners.newWeakInterner();
 
     private final Map<ObjectId, RegionPath> idToRegion = Maps.newConcurrentMap();
     private final MongoDatabase database;
@@ -308,7 +312,7 @@ public class RegionStorageAdapter {
          * @param id The name of the region
          */
         public static RegionPath create(String world, String id) {
-            return new RegionPath(world, id);
+            return REGION_PATH_CACHE.intern(new RegionPath(world, id));
         }
     }
 }
