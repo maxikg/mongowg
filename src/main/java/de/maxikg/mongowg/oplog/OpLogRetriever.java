@@ -13,11 +13,14 @@ import org.bson.BsonTimestamp;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 /**
  * {@link Runnable} which can be used to obtain oplog information.
  */
 public class OpLogRetriever implements Runnable {
+
+    private static final Logger LOGGER = Logger.getLogger(OpLogRetriever.class.getName());
 
     private final MongoCollection<BsonDocument> oplog;
     private final OpLogParser parser;
@@ -41,7 +44,12 @@ public class OpLogRetriever implements Runnable {
      */
     @Override
     public void run() {
-        final AtomicReference<BsonTimestamp> last = new AtomicReference<>(OpLogUtils.getLatestOplogTimestamp(oplog));
+        BsonTimestamp timestamp = OpLogUtils.getLatestOplogTimestamp(oplog);
+        if (timestamp == null) {
+            LOGGER.severe("OpLog is not ready. Please make sure that the server maintains an oplog and restart this server.");
+            return;
+        }
+        final AtomicReference<BsonTimestamp> last = new AtomicReference<>(timestamp);
         //noinspection InfiniteLoopStatement
         while (true) {
             final CountDownLatch waiter = new CountDownLatch(1);
